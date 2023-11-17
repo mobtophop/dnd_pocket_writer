@@ -29,7 +29,7 @@ class RootRouterDelegate extends RouterDelegate<StateRouter> {
   }
 
   Page get _homePage {
-    return const MaterialPage(child: PageMain());
+    return MaterialPage(child: PageMain());
   }
 
   List<Page> get _extraPages {

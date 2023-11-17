@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
+import 'package:path_provider/path_provider.dart';
 
 class ImageDownloadButton extends StatefulWidget {
   const ImageDownloadButton({super.key, required this.url});
@@ -30,7 +31,16 @@ class _ImageDownloadButtonState extends State<ImageDownloadButton> {
             isLoading = true;
           });
 
-          String downloadsPath = "/storage/emulated/0/Download";
+          String downloadsPath = "";
+
+          if (Platform.isAndroid) {
+            downloadsPath = "/storage/emulated/0/Download";
+          }
+
+          if (Platform.isIOS) {
+            downloadsPath = (await getApplicationDocumentsDirectory()).path;
+          }
+
           String filePath =
               "$downloadsPath/dnd_character-${DateTime.now().millisecondsSinceEpoch % 100000000}.png";
 

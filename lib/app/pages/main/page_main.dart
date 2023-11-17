@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:dnd_pocket_writer/app/keys.dart';
+import 'package:dnd_pocket_writer/app/pages/main/widgets/main_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -13,6 +13,7 @@ import 'package:dnd_pocket_writer/app/pages/main/widgets/image_download_button.d
 import 'package:dnd_pocket_writer/app/pages/main/widgets/main_page_slider.dart';
 import 'package:dnd_pocket_writer/app/pages/page_base_widget.dart';
 import 'package:dnd_pocket_writer/misc/app_colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum PromptParameters {
   cGender,
@@ -24,7 +25,7 @@ enum PromptParameters {
 }
 
 class PageMain extends StatelessWidget {
-  const PageMain({super.key});
+  PageMain({super.key});
 
   static const Map parameterTitles = {
     PromptParameters.cGender: "Gender",
@@ -85,227 +86,242 @@ class PageMain extends StatelessWidget {
     PromptParameters.sLengthValue: [100],
   };
 
+  final TextEditingController controller = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
-    double dropdownWidth = screenWidth - 16.0;
+    return BlocProvider<CubitMain>(
+      create: (context) => CubitMain(controller),
+      child: BlocBuilder<CubitMain, StateMain>(
+        builder: (context, state) {
+          CubitMain bloc = BlocProvider.of<CubitMain>(context);
 
-    return PageBase(
-      child: BlocProvider<CubitMain>(
-        create: (context) => CubitMain(),
-        child: BlocBuilder<CubitMain, StateMain>(
-          builder: (context, state) {
-            CubitMain bloc = BlocProvider.of<CubitMain>(context);
+          List<PromptParameters> characterParameters = PromptParameters.values
+              .where((v) => v.name.startsWith("c"))
+              .toList();
 
-            List<PromptParameters> characterParameters = PromptParameters.values
-                .where((v) => v.name.startsWith("c"))
-                .toList();
+          List<Widget> characterPromptWidgets = [];
+          for (PromptParameters parameter in characterParameters) {
+            characterPromptWidgets.addAll(
+              _buildDropdown(
+                context,
+                parameter,
+                bloc.changeParameter,
+              ),
+            );
+          }
 
-            List<Widget> characterPromptWidgets = [];
-            for (PromptParameters parameter in characterParameters) {
-              characterPromptWidgets.addAll(
-                _buildDropdown(
-                  context,
-                  dropdownWidth,
-                  parameter,
-                  bloc.changeParameter,
-                ),
-              );
-            }
+          return PageBase(
+            onDrawerChanged: (value) async {
+              if (!value) {
+                bloc.changeApiKey(controller.text);
 
-            return SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildSectionTitle("Character parameters:"),
-                    ...characterPromptWidgets,
-                    _buildSectionTitle("Story parameters:"),
-                    ..._buildDropdown(
-                      context,
-                      dropdownWidth,
-                      PromptParameters.sMood,
-                      bloc.changeParameter,
-                    ),
-                    Row(
+                var prefs = await SharedPreferences.getInstance();
+                prefs.setString("api_key", controller.text);
+              }
+            },
+            title: Align(
+              alignment: Alignment.centerLeft,
+              child: Image.asset(
+                "assets/images/logo_long_white.png",
+                height: AppBar().preferredSize.height,
+              ),
+            ),
+            drawer: _buildMainDrawer(controller),
+            child: Builder(
+              builder: (context) {
+                return SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(parameterTitles[PromptParameters.sLengthValue]),
-                        const SizedBox(width: 16.0),
-                        Expanded(
-                          child: MainPageSlider(
-                            onChanged: (value) {
-                              bloc.changeParameter(
-                                PromptParameters.sLengthValue,
-                                value.toString(),
-                              );
-                            },
-                          ),
+                        _buildSectionTitle("Character parameters:"),
+                        ...characterPromptWidgets,
+                        _buildSectionTitle("Story parameters:"),
+                        ..._buildDropdown(
+                          context,
+                          PromptParameters.sMood,
+                          bloc.changeParameter,
                         ),
-                      ],
-                    ),
-                    Flexible(
-                      child: SizedBox(
-                        height: 96.0,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: state.isAwaitingResponse
-                              ? Center(
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.main,
+                        Row(
+                          children: [
+                            Text(
+                                parameterTitles[PromptParameters.sLengthValue]),
+                            const SizedBox(width: 16.0),
+                            Expanded(
+                              child: MainPageSlider(
+                                onChanged: (value) {
+                                  bloc.changeParameter(
+                                    PromptParameters.sLengthValue,
+                                    value.toString(),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        Flexible(
+                          child: SizedBox(
+                            height: 96.0,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: TextButton(
+                                style: ButtonStyle(
+                                  overlayColor: MaterialStateColor.resolveWith(
+                                    (_) => AppColors.backgroundWhite
+                                        .withOpacity(0.3),
                                   ),
-                                )
-                              : TextButton(
-                                  style: ButtonStyle(
-                                    overlayColor:
-                                        MaterialStateColor.resolveWith(
-                                      (_) => AppColors.backgroundWhite
-                                          .withOpacity(0.3),
-                                    ),
-                                    backgroundColor:
-                                        MaterialStateColor.resolveWith(
-                                      (_) => AppColors.main,
-                                    ),
-                                    foregroundColor:
-                                        MaterialStateColor.resolveWith(
-                                      (_) => AppColors.backgroundWhite,
-                                    ),
+                                  backgroundColor:
+                                      MaterialStateColor.resolveWith(
+                                    (_) => state.isAwaitingResponse
+                                        ? AppColors.mainLight40
+                                        : AppColors.main,
                                   ),
-                                  onPressed: () => _onGenerateButtonPress(
-                                    bloc,
-                                    state.promptParameters,
-                                  ),
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(8.0),
-                                    child: Text(
-                                      "Generate story!",
-                                      style: TextStyle(fontSize: 24.0),
-                                    ),
+                                  foregroundColor:
+                                      MaterialStateColor.resolveWith(
+                                    (_) => AppColors.backgroundWhite,
                                   ),
                                 ),
+                                onPressed: state.isAwaitingResponse
+                                    ? null
+                                    : () => _onGenerateButtonPress(
+                                          context,
+                                          bloc,
+                                          state.promptParameters,
+                                          state.apiKey,
+                                        ),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(8.0),
+                                  child: Text(
+                                    "Generate story!",
+                                    style: TextStyle(fontSize: 24.0),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    if (state.warning.isNotEmpty)
-                      Text(
-                        state.warning,
-                        style: const TextStyle(
-                          color: Colors.red, //todo: move to app colors
-                        ),
-                      ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.main,
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(16.0),
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          children: [
-                            if (state.text.isNotEmpty) ...[
-                              Row(
-                                children: [
-                                  ElevatedButton(
-                                    onPressed: () async {
-                                      Clipboard.setData(
-                                        ClipboardData(text: state.text),
-                                      ).then(
-                                        (_) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Story copied to clipboard!',
-                                              ),
-                                            ),
+                        if (state.warning.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Text(
+                              state.warning,
+                              style: const TextStyle(
+                                color: AppColors.errorRed,
+                              ),
+                            ),
+                          ),
+                        Container(
+                          decoration: const BoxDecoration(
+                            color: AppColors.main,
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(16.0),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              children: [
+                                if (state.text.isNotEmpty) ...[
+                                  Row(
+                                    children: [
+                                      ElevatedButton(
+                                        onPressed: () async {
+                                          Clipboard.setData(
+                                            ClipboardData(text: state.text),
+                                          ).then(
+                                            (_) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Story copied to clipboard!',
+                                                  ),
+                                                ),
+                                              );
+                                            },
                                           );
                                         },
-                                      );
-                                    },
-                                    style: ButtonStyle(
-                                      backgroundColor:
-                                          MaterialStateColor.resolveWith(
-                                        (_) => AppColors.main,
+                                        style: ButtonStyle(
+                                          backgroundColor:
+                                              MaterialStateColor.resolveWith(
+                                            (_) => AppColors.main,
+                                          ),
+                                          padding:
+                                              MaterialStateProperty.resolveWith(
+                                            (_) => const EdgeInsets.all(16.0),
+                                          ),
+                                        ),
+                                        child: const Icon(Icons.copy),
                                       ),
-                                      padding:
-                                          MaterialStateProperty.resolveWith(
-                                        (_) => const EdgeInsets.all(16.0),
+                                      ElevatedButton(
+                                        onPressed: state.isAwaitingResponse
+                                            ? null
+                                            : () => _onGenerateButtonPress(
+                                                  context,
+                                                  bloc,
+                                                  state
+                                                      .lastUsedPromptParameters,
+                                                  state.apiKey,
+                                                ),
+                                        style: ButtonStyle(
+                                          backgroundColor:
+                                              MaterialStateColor.resolveWith(
+                                            (_) => state.isAwaitingResponse
+                                                ? AppColors.mainLight20
+                                                : AppColors.main,
+                                          ),
+                                          padding:
+                                              MaterialStateProperty.resolveWith(
+                                            (_) => const EdgeInsets.all(16.0),
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          Icons.refresh,
+                                          color: state.isAwaitingResponse
+                                              ? AppColors.mainLight80
+                                              : AppColors.backgroundWhite,
+                                        ),
                                       ),
-                                    ),
-                                    child: const Icon(Icons.copy),
+                                      const Expanded(child: SizedBox()),
+                                      ElevatedButton(
+                                        onPressed: state.isAwaitingResponse
+                                            ? null
+                                            : () => _onPortraitButtonPress(
+                                                  bloc,
+                                                  state.apiKey,
+                                                ),
+                                        style: ButtonStyle(
+                                          backgroundColor:
+                                              MaterialStateColor.resolveWith(
+                                            (_) => state.isAwaitingResponse
+                                                ? AppColors.mainLight20
+                                                : AppColors.main,
+                                          ),
+                                          padding:
+                                              MaterialStateProperty.resolveWith(
+                                            (_) => const EdgeInsets.all(16.0),
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          Icons.draw,
+                                          color: state.isAwaitingResponse
+                                              ? AppColors.mainLight80
+                                              : AppColors.backgroundWhite,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  state.isAwaitingResponse
-                                      ? Center(
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16.0,
-                                            ),
-                                            child: CircularProgressIndicator(
-                                              color: AppColors.backgroundWhite,
-                                            ),
-                                          ),
-                                        )
-                                      : ElevatedButton(
-                                          onPressed: () =>
-                                              _onGenerateButtonPress(
-                                            bloc,
-                                            state.lastUsedPromptParameters,
-                                          ),
-                                          style: ButtonStyle(
-                                            backgroundColor:
-                                                MaterialStateColor.resolveWith(
-                                              (_) => AppColors.main,
-                                            ),
-                                            padding: MaterialStateProperty
-                                                .resolveWith(
-                                              (_) => const EdgeInsets.all(16.0),
-                                            ),
-                                          ),
-                                          child: const Icon(Icons.refresh),
-                                        ),
-                                  const Expanded(child: SizedBox()),
-                                  state.isAwaitingResponse
-                                      ? Center(
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16.0,
-                                            ),
-                                            child: CircularProgressIndicator(
-                                              color: AppColors.backgroundWhite,
-                                            ),
-                                          ),
-                                        )
-                                      : ElevatedButton(
-                                          onPressed: () =>
-                                              _onPortraitButtonPress(bloc),
-                                          style: ButtonStyle(
-                                            backgroundColor:
-                                                MaterialStateColor.resolveWith(
-                                              (_) => AppColors.main,
-                                            ),
-                                            padding: MaterialStateProperty
-                                                .resolveWith(
-                                              (_) => const EdgeInsets.all(16.0),
-                                            ),
-                                          ),
-                                          child: const Icon(Icons.draw),
-                                        ),
+                                  const SizedBox(height: 16.0),
                                 ],
-                              ),
-                              const SizedBox(height: 16.0),
-                            ],
-                            if (state.imageURL.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 16.0),
-                                child: Image.network(
-                                  state.imageURL,
-                                  repeat: ImageRepeat.noRepeat,
-                                  fit: BoxFit.fill,
-                                  loadingBuilder: (context, child, loading) {
-                                    return Container(
+                                if (state.imageURL.isNotEmpty ||
+                                    state.isLoadingImage)
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.only(bottom: 16.0),
+                                    child: Container(
                                       clipBehavior: Clip.hardEdge,
                                       decoration: BoxDecoration(
                                         border: Border.all(
@@ -319,82 +335,103 @@ class PageMain extends StatelessWidget {
                                       child: AspectRatio(
                                         aspectRatio: 1,
                                         child: Center(
-                                          child: loading == null
-                                              ? Stack(
-                                                  alignment: Alignment.topRight,
-                                                  children: [
-                                                    child,
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                        8.0,
-                                                      ),
-                                                      child:
-                                                          ImageDownloadButton(
-                                                        url: state.imageURL,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                )
-                                              : CircularProgressIndicator(
+                                          child: state.imageURL.isEmpty
+                                              ? const CircularProgressIndicator(
                                                   color:
                                                       AppColors.backgroundWhite,
-                                                  backgroundColor: AppColors
-                                                      .backgroundWhite
-                                                      .withOpacity(
-                                                    0.2,
-                                                  ),
-                                                  value: loading
-                                                              .expectedTotalBytes !=
-                                                          null
-                                                      ? loading
-                                                              .cumulativeBytesLoaded /
-                                                          loading
-                                                              .expectedTotalBytes!
-                                                      : null,
+                                                )
+                                              : Image.network(
+                                                  state.imageURL,
+                                                  repeat: ImageRepeat.noRepeat,
+                                                  fit: BoxFit.fill,
+                                                  loadingBuilder: (context,
+                                                      child, loading) {
+                                                    return loading == null
+                                                        ? Stack(
+                                                            alignment: Alignment
+                                                                .topRight,
+                                                            children: [
+                                                              Center(
+                                                                  child: child),
+                                                              Padding(
+                                                                padding:
+                                                                    const EdgeInsets
+                                                                        .all(
+                                                                  8.0,
+                                                                ),
+                                                                child:
+                                                                    ImageDownloadButton(
+                                                                  url: state
+                                                                      .imageURL,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          )
+                                                        : CircularProgressIndicator(
+                                                            color: AppColors
+                                                                .backgroundWhite,
+                                                            backgroundColor:
+                                                                AppColors
+                                                                    .backgroundWhite
+                                                                    .withOpacity(
+                                                              0.2,
+                                                            ),
+                                                            value: loading
+                                                                        .expectedTotalBytes !=
+                                                                    null
+                                                                ? loading
+                                                                        .cumulativeBytesLoaded /
+                                                                    loading
+                                                                        .expectedTotalBytes!
+                                                                : null,
+                                                          );
+                                                  },
                                                 ),
                                         ),
                                       ),
-                                    );
-                                  },
+                                    ),
+                                  ),
+                                TextField(
+                                  controller: TextEditingController()
+                                    ..text = state.text,
+                                  readOnly: true,
+                                  decoration: InputDecoration.collapsed(
+                                    hintText: "\n\nYour story will be here...",
+                                    hintStyle: TextStyle(
+                                      color: AppColors.backgroundWhite
+                                          .withOpacity(0.7),
+                                    ),
+                                  ),
+                                  cursorColor: AppColors.backgroundWhite,
+                                  minLines: 5,
+                                  maxLines: 100,
+                                  style: const TextStyle(
+                                    color: AppColors.backgroundWhite,
+                                  ),
+                                  textAlign: state.text.isEmpty
+                                      ? TextAlign.center
+                                      : TextAlign.start,
                                 ),
-                              ),
-                            TextField(
-                              controller: TextEditingController()
-                                ..text = state.text,
-                              readOnly: true,
-                              decoration: InputDecoration.collapsed(
-                                hintText: "Your story will be here...",
-                                hintStyle: TextStyle(
-                                  color: AppColors.backgroundWhite
-                                      .withOpacity(0.7),
-                                ),
-                              ),
-                              cursorColor: AppColors.backgroundWhite,
-                              minLines: 5,
-                              maxLines: 100,
-                              style: TextStyle(
-                                color: AppColors.backgroundWhite,
-                              ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
+                  ),
+                );
+              },
+            ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildSectionTitle(String title) {
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.all(Radius.circular(8.0)),
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(8.0)),
         gradient: LinearGradient(
           colors: [
             AppColors.main,
@@ -406,14 +443,16 @@ class PageMain extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: Text(title, style: TextStyle(color: AppColors.backgroundWhite)),
+        child: Text(
+          title,
+          style: const TextStyle(color: AppColors.backgroundWhite),
+        ),
       ),
     );
   }
 
   List<Widget> _buildDropdown(
     BuildContext context,
-    double width,
     PromptParameters parameter,
     Function(PromptParameters, String?) changeCallback,
   ) {
@@ -422,29 +461,31 @@ class PageMain extends StatelessWidget {
         padding: const EdgeInsets.all(8.0).copyWith(left: 0.0),
         child: Text("${parameterTitles[parameter]}:"),
       ),
-      DropdownMenu<String?>(
-        width: width,
-        hintText: "Not selected",
-        onSelected: (value) => changeCallback(
-          parameter,
-          value,
+      LayoutBuilder(
+        builder: (context, constraints) => DropdownMenu<String?>(
+          width: constraints.widthConstraints().maxWidth,
+          hintText: "Not selected",
+          onSelected: (value) => changeCallback(
+            parameter,
+            value,
+          ),
+          dropdownMenuEntries: ([
+                const DropdownMenuEntry(
+                  // ignore: unnecessary_cast
+                  value: null as String?,
+                  label: "",
+                ),
+              ]) +
+              (parameterOptions[parameter] != null
+                  ? List.generate(
+                      parameterOptions[parameter]!.length,
+                      (i) => DropdownMenuEntry(
+                        value: parameterOptions[parameter]![i],
+                        label: parameterOptions[parameter]![i],
+                      ),
+                    )
+                  : []),
         ),
-        dropdownMenuEntries: ([
-              const DropdownMenuEntry(
-                // ignore: unnecessary_cast
-                value: null as String?,
-                label: "",
-              ),
-            ]) +
-            (parameterOptions[parameter] != null
-                ? List.generate(
-                    parameterOptions[parameter]!.length,
-                    (i) => DropdownMenuEntry(
-                      value: parameterOptions[parameter]![i],
-                      label: parameterOptions[parameter]![i],
-                    ),
-                  )
-                : []),
       ),
       const SizedBox(height: 8.0),
     ];
@@ -453,6 +494,7 @@ class PageMain extends StatelessWidget {
   Future<StreamedResponse> _sendPrompt(
     Map<PromptParameters, String?> promptParameters,
     Function(Map<PromptParameters, String>) saveLastParameters,
+    String apiKey,
   ) async {
     var rand = Random();
 
@@ -511,7 +553,7 @@ class PageMain extends StatelessWidget {
 
     request.headers.addAll({
       "Content-Type": "application/json",
-      "Authorization": "Bearer $OPENAI_API_KEY"
+      "Authorization": "Bearer $apiKey"
     });
 
     request.bodyBytes = jsonEncode({
@@ -536,9 +578,16 @@ class PageMain extends StatelessWidget {
   }
 
   Future _onGenerateButtonPress(
+    BuildContext context,
     CubitMain bloc,
     Map<PromptParameters, String> promptParameters,
+    String apiKey,
   ) async {
+    if (apiKey.isEmpty) {
+      Scaffold.of(context).openDrawer();
+      return;
+    }
+
     bloc.clearWarning();
     bloc.changeStoryText("");
     bloc.clearImageUrl();
@@ -546,6 +595,7 @@ class PageMain extends StatelessWidget {
     StreamedResponse response = await _sendPrompt(
       promptParameters,
       bloc.saveLastParameters,
+      apiKey,
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -554,18 +604,31 @@ class PageMain extends StatelessWidget {
           String body = utf8.decode(data);
           List<String> bodyList = body.split("data:");
 
-          for (String item in bodyList) {
-            String str = item.trim();
+          for (int i = 0; i < bodyList.length; i++) {
+            String str = bodyList[i].trim();
 
             if (str == "[DONE]") {
               bloc.changeLoadingStatus(false);
               break;
             }
 
+            dynamic decodedBody;
             if (str.isNotEmpty) {
-              var decodedBody = jsonDecode(str);
+              try {
+                decodedBody = jsonDecode(str);
+              } catch (ex) {
+                if (i > 0) {
+                  try {
+                    decodedBody = jsonDecode("${bodyList[i - 1].trim()}$str");
+                  } catch (ex) {
+                    continue;
+                  }
+                } else {
+                  continue;
+                }
+              }
 
-              Map delta = decodedBody["choices"][0]["delta"];
+              Map delta = decodedBody!["choices"][0]["delta"];
 
               if (delta.isEmpty) continue;
 
@@ -584,10 +647,10 @@ class PageMain extends StatelessWidget {
     }
   }
 
-  Future _onPortraitButtonPress(CubitMain bloc) async {
+  Future _onPortraitButtonPress(CubitMain bloc, String apiKey) async {
     bloc.clearWarning();
     bloc.clearImageUrl();
-    bloc.changeLoadingStatus(true);
+    bloc.changeLoadingStatus(true, true);
 
     var client = Client();
 
@@ -595,7 +658,7 @@ class PageMain extends StatelessWidget {
       Uri.parse("https://api.openai.com/v1/chat/completions"),
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer $OPENAI_API_KEY"
+        "Authorization": "Bearer $apiKey"
       },
       body: jsonEncode({
         "model": "gpt-4",
@@ -630,12 +693,12 @@ class PageMain extends StatelessWidget {
       Uri.parse("https://api.openai.com/v1/images/generations"),
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer $OPENAI_API_KEY"
+        "Authorization": "Bearer $apiKey"
       },
       body: jsonEncode({"prompt": prompt, "n": 1, "size": "1024x1024"}),
     );
 
-    bloc.changeLoadingStatus(false);
+    bloc.changeLoadingStatus(false, false);
 
     if (res.statusCode >= 200 && res.statusCode < 300) {
       var decodedBody = jsonDecode(res.body);
@@ -648,5 +711,9 @@ class PageMain extends StatelessWidget {
     }
   }
 
-  Future _saveImage(String imageURL) async {}
+  Drawer _buildMainDrawer(TextEditingController controller) {
+    return Drawer(
+      child: MainDrawer(controller: controller),
+    );
+  }
 }
