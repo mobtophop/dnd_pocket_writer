@@ -12,6 +12,7 @@ class AppRoot extends StatelessWidget {
     final GlobalKey<NavigatorState> rootKey = GlobalKey();
 
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: BlocProvider(
         create: (context) => CubitRouter(),
         child: BlocBuilder<CubitRouter, StateRouter>(

@@ -148,7 +148,8 @@ class PageMain extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                                parameterTitles[PromptParameters.sLengthValue]),
+                              parameterTitles[PromptParameters.sLengthValue],
+                            ),
                             const SizedBox(width: 16.0),
                             Expanded(
                               child: MainPageSlider(
@@ -181,7 +182,9 @@ class PageMain extends StatelessWidget {
                                   ),
                                   foregroundColor:
                                       MaterialStateColor.resolveWith(
-                                    (_) => AppColors.backgroundWhite,
+                                    (_) => state.isAwaitingResponse
+                                        ? AppColors.mainLight80
+                                        : AppColors.backgroundWhite,
                                   ),
                                 ),
                                 onPressed: state.isAwaitingResponse
