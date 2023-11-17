@@ -5,7 +5,7 @@
 > [!WARNING]
 > The project is not fully finished in terms of code structure and design tweaking!
 
-<img src="https://github.com/mobtophop/dnd_pocket_writer/assets/145994644/b7384055-b8b8-4996-b60f-b0258713b9d8" height="320" align="left" >
+<img src="https://github.com/mobtophop/dnd_pocket_writer/assets/145994644/042f2684-d76d-451e-975a-84149b1b44d8" height="320" align="left" >
 Got an awesome idea for a character, but no will or time to write their detailed story?<br>The game starts in an hour, but all you have is a set of stats instead of a Character?<br>ChatGPT 4 is here to help! 
 
 <br clear="left"/>
@@ -16,9 +16,9 @@ Got an awesome idea for a character, but no will or time to write their detailed
  - Choose story length from 100 to 400 words long
  - Set the mood of the story. For example happy, tragic, etc.
 
-| List of options | Story generation process |
-| --- | --- |
-| <img src="https://github.com/mobtophop/dnd_pocket_writer/assets/145994644/8b0eaf81-e121-4e70-be32-67df67bb7ede" height="320" width="180"> | <img src="https://github.com/mobtophop/dnd_pocket_writer/assets/145994644/43d263a3-26e5-4ff8-ada4-2886eac84821" height="320" width="180"> |
+| List of Options | Entering User Key | Story Generation Process |
+| --- | --- | --- |
+| <img src="https://github.com/mobtophop/dnd_pocket_writer/assets/145994644/fdedb454-aefe-4593-bed1-59851d79677b" height="320" width="180"> | <img src="https://github.com/mobtophop/dnd_pocket_writer/assets/145994644/c2bea237-a4ea-4010-be4d-b8c41625c857" height="320" width="180"> | <img src="https://github.com/mobtophop/dnd_pocket_writer/assets/145994644/888c9eaf-3985-4592-91bd-67b423e6592b" height="320" width="180"> |
 
 ### Some technical info:
  - The stories are generated using `gpt-4-0613`
