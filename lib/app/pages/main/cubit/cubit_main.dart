@@ -1,7 +1,10 @@
+import 'package:dnd_pocket_writer/domain/providers/open_ai_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dnd_pocket_writer/app/pages/main/cubit/state_main.dart';
 import 'package:dnd_pocket_writer/app/pages/main/page_main.dart';
+import 'package:get_it/get_it.dart';
+import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CubitMain extends Cubit<StateMain> {
@@ -59,6 +62,54 @@ class CubitMain extends Cubit<StateMain> {
 
   void changeWarning(String warning) {
     emit(StateMain.fromState(state, warning: warning));
+  }
+
+  Future<StreamedResponse> generateStory(
+    String apiKey,
+    String completeRequest,
+  ) async {
+    var result = await GetIt.I.get<OpenAiProvider>().generateStory(
+          apiKey: apiKey,
+          prompt: completeRequest,
+        );
+
+    if (result.isRight) {
+      return result.right;
+    } else {
+      throw Exception(result.left.message);
+    }
+  }
+
+  Future<Response> generatePrompts(
+    String apiKey,
+    String story,
+  ) async {
+    var result = await GetIt.I.get<OpenAiProvider>().generatePrompts(
+          apiKey: apiKey,
+          story: story,
+        );
+
+    if (result.isRight) {
+      return result.right;
+    } else {
+      throw Exception(result.left.message);
+    }
+  }
+
+  Future<Response> generateImage(
+    String apiKey,
+    String prompt,
+  ) async {
+    var result = await GetIt.I.get<OpenAiProvider>().generateImage(
+          apiKey: apiKey,
+          prompt: prompt,
+        );
+
+    if (result.isRight) {
+      return result.right;
+    } else {
+      throw Exception(result.left.message);
+    }
   }
 
   void clearWarning() => changeWarning("");
